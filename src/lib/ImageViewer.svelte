@@ -2,52 +2,71 @@
     import { cubicInOut } from "svelte/easing";
     import { tweened } from "svelte/motion";
 
-    const [actualWidth, actualHeight] = [1600, 1600];
-    const [initalWidth, initalHeight] = [actualWidth / 2, actualHeight / 2];
-    const src = `https://source.unsplash.com/random/${initalWidth}x${initalHeight}?space`;
-
-    let mouseX = 0;
-    let mouseY = 0;
-
-    function handleMouseMove(mouseEvent: MouseEvent) {
-        mouseX = (mouseEvent.offsetX / initalWidth) * 100;
-        mouseY = (mouseEvent.offsetY / initalHeight) * 100;
+    interface Dimensions {
+        width: number;
+        height: number;
     }
 
-    const zoom = tweened(1, {
+    interface PercentageXY {
+        percentX: number;
+        percentY: number;
+    }
+
+    const imageScaleWhenZoomed = 2;
+
+    const imageSourceSize: Dimensions = {
+        width: 1500,
+        height: 1500,
+    };
+
+    const imageSizeOnPage: Dimensions = {
+        width: imageSourceSize.width / imageScaleWhenZoomed,
+        height: imageSourceSize.height / imageScaleWhenZoomed,
+    };
+
+    const src = `https://source.unsplash.com/random/${imageSourceSize.width}x${imageSourceSize.height}?sushi`;
+
+    let mousePositionOnImage: PercentageXY = {
+        percentX: 0,
+        percentY: 0,
+    };
+
+    function handleMouseMove(mouseEvent: MouseEvent) {
+        mousePositionOnImage.percentX =
+            (mouseEvent.offsetX / imageSizeOnPage.width) * 100;
+        mousePositionOnImage.percentY =
+            (mouseEvent.offsetY / imageSizeOnPage.height) * 100;
+    }
+
+    const imageScale = tweened(1, {
         duration: 150,
         easing: cubicInOut,
     });
 
     let zoomed = false;
-    $: {
-        if (zoomed) {
-            zoom.set(2);
-        } else {
-            zoom.set(1);
-        }
-    }
+    $: imageScale.set(zoomed ? imageScaleWhenZoomed : 1);
 </script>
 
 <div
     on:click={() => (zoomed = !zoomed)}
-    on:keydown={() => (zoomed = !zoomed)}
-    on:mousemove={handleMouseMove}
+    on:keypress={() => (zoomed = !zoomed)}
     on:mouseleave={() => (zoomed = false)}
+    on:mousemove={handleMouseMove}
     role="button"
     tabindex="0"
-    style:width={initalWidth}
-    style:height={initalHeight}
-    draggable="false"
+    style:width={imageSizeOnPage.width}
+    style:height={imageSizeOnPage.height}
 >
     <img
-        width={initalWidth}
-        height={initalHeight}
         {src}
+        width={imageSizeOnPage.width}
+        height={imageSizeOnPage.height}
         alt="art from unsplash"
         class:zoomed
-        style:scale={$zoom}
-        style:transform-origin="{mouseX}% {mouseY}% 0px"
+        style:scale={$imageScale}
+        style:transform-origin="{mousePositionOnImage.percentX}% {mousePositionOnImage.percentY}%
+        0px"
+        draggable="false"
     />
 </div>
 
